@@ -13,12 +13,29 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
+  prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        - ./prometheus/data:/prometheus
+      ports:
+        - "9090:9090"
+      command:
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--storage.tsdb.path=/prometheus"
+        - "--web.enable-lifecycle"
+        - "--web.enable-remote-write-receiver"   # ✅ allows remote Alloy to push metrics
+      restart: unless-stopped
+      networks:
+        - monitoring
 
   grafana:
     image: grafana/grafana:11.2.2
     container_name: grafana
     depends_on:
       - loki
+      - prometheus
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -52,20 +69,25 @@ services:
       - monitoring
 
   alloy:
-    image: grafana/alloy:latest
-    container_name: alloy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./alloy/config.alloy:/etc/alloy/config.alloy
-    command: ["run", "/etc/alloy/config.alloy"]
-    ports:
-      - "12345:12345"
-    depends_on:
-      - loki
-    restart: unless-stopped
-    networks:
-      - monitoring
-
+      image: grafana/alloy:latest
+      container_name: alloy
+      volumes:
+        - ./alloy/config.alloy:/etc/alloy/config.alloy
+        - ./alloy/data:/var/lib/alloy/data
+        - /var/run/docker.sock:/var/run/docker.sock
+      ports:
+        - "12345:12345"   # Alloy UI exposed
+      command:
+        - run
+        - --server.http.listen-addr=0.0.0.0:12345
+        - --storage.path=/var/lib/alloy/data
+        - /etc/alloy/config.alloy
+      depends_on:
+        - loki
+        - prometheus
+      restart: unless-stopped
+      networks:
+        - monitoring
 volumes:
   rabbitmq_data:
 

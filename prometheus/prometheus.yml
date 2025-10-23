@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Monitor Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Monitor Alloy metrics inside Docker
+  - job_name: "alloy"
+    static_configs:
+      - targets: ["alloy:12345"]
+
+  # Example: scrape remote Linux host with node_exporter
+  - job_name: "remote-linux"
+    static_configs:
+      - targets: ["192.168.0.25:9100"]  # Replace with your remote IP
+
+  # Example: scrape remote Alloy agent
+  - job_name: "remote-alloy"
+    static_configs:
+      - targets: ["192.168.0.30:12345"]
