@@ -88,6 +88,47 @@ services:
       restart: unless-stopped
       networks:
         - monitoring
+  huginn:
+    image: ghcr.io/huginn/huginn
+    container_name: huginn
+    depends_on:
+      - huginn-db
+    ports:
+      - "3001:3000"
+    environment:
+      - HUGINN_DATABASE_ADAPTER=mysql2
+      - HUGINN_DATABASE_NAME=${HUGINN_DB_NAME:-huginn}
+      - HUGINN_DATABASE_USERNAME=${HUGINN_DB_USER:-huginn}
+      - HUGINN_DATABASE_PASSWORD=${HUGINN_DB_PASS:-huginnpass}
+      - HUGINN_DATABASE_HOST=huginn-db
+      - HUGINN_PORT=3000
+      - RAILS_ENV=production
+      - DOMAIN=localhost
+      - INVITATION_CODE_REQUIRED=false
+      - SMTP_DOMAIN=${SMTP_DOMAIN:-localhost}
+      - SMTP_USER_NAME=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASS}
+      - SMTP_SERVER=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+    volumes:
+      - ./huginn/log:/var/log/huginn     # ✅ optional, for persistent logs
+      - ./huginn/uploads:/app/public/uploads  # ✅ optional, if you store files
+    restart: unless-stopped
+    networks:
+      - monitoring
+  huginn-db:
+    image: mysql:5.7
+    container_name: huginn-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${HUGINN_DB_ROOT_PASS:-rootpass}
+      MYSQL_DATABASE: ${HUGINN_DB_NAME:-huginn}
+      MYSQL_USER: ${HUGINN_DB_USER:-huginn}
+      MYSQL_PASSWORD: ${HUGINN_DB_PASS:-huginnpass}
+    volumes:
+      - ./huginn/db:/var/lib/mysql   # ✅ uses your usual folder pattern
+    networks:
+      - monitoring
 volumes:
   rabbitmq_data:
 
